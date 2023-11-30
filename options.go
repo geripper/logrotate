@@ -8,6 +8,18 @@ import (
 
 type Option func(*RotateLog)
 
+func WithStdout() Option {
+	return func(r *RotateLog) {
+		r.stdout = true
+	}
+}
+
+func WithStderr() Option {
+	return func(r *RotateLog) {
+		r.stderr = true
+	}
+}
+
 // Judege expired by laste modify time
 // cutoffTime = now - maxAge
 // Only delete satisfying file wildcard filename

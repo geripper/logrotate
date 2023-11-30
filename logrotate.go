@@ -16,6 +16,8 @@ type RotateLog struct {
 
 	filename           string
 	logPath            string
+	stdout             bool
+	stderr             bool
 	maxAge             time.Duration
 	deleteFileWildcard string
 
@@ -86,6 +88,13 @@ func (r *RotateLog) rotateFile(now time.Time) error {
 		r.file.Close()
 	}
 	r.file = file
+
+	if r.stdout {
+		os.Stdout = r.file
+	}
+	if r.stderr {
+		os.Stderr = r.file
+	}
 
 	if r.maxAge > 0 && len(r.deleteFileWildcard) > 0 { // at present
 		go r.deleteExpiredFile(now)
