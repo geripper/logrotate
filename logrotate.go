@@ -96,6 +96,8 @@ func (r *RotateLog) rotateFile(now time.Time) error {
 		os.Stderr = r.file
 	}
 
+	r.logPath = latestLogPath
+
 	if r.maxAge > 0 && len(r.deleteFileWildcard) > 0 { // at present
 		go r.deleteExpiredFile(now)
 	}
