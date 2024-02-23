@@ -136,5 +136,7 @@ func (r *RotateLog) deleteExpiredFile(now time.Time) {
 }
 
 func (r *RotateLog) getLatestLogPath(t time.Time) string {
-	return fmt.Sprintf("%s%s%s-%s", filepath.Dir(r.logPath), string([]byte{filepath.Separator}), t.Format("2006-01-02"), r.filename)
+	filesuffix := path.Ext(r.filename)
+	fileprefix := r.filename[0 : len(r.filename)-len(filesuffix)]
+	return fmt.Sprintf("%s%s%s-%s%s", filepath.Dir(r.logPath), string([]byte{filepath.Separator}), fileprefix, t.Format("2006-01-02"), filesuffix)
 }
