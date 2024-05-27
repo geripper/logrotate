@@ -113,25 +113,26 @@ func (r *RotateLog) deleteExpiredFile(now time.Time) {
 
 	cutoffTime := now.Add(-r.maxAge)
 
-	filePath := filepath.Dir(r.logPath)
-	walkFunc := func(path string, info os.FileInfo, err error) error {
-		// 如果遍历到的是文件，则输出文件名
-		if !info.IsDir() {
-			if r.maxAge > 0 && info.ModTime().After(cutoffTime) {
-				return nil
-			}
-
-			if info.Name() == filepath.Base(r.logPath) {
-				return nil
-			}
-
-			os.Remove(path)
-		}
-		return nil
+	matches, err := filepath.Glob(r.deleteFileWildcard)
+	if err != nil {
+		return
 	}
 
-	// 遍历文件夹及其子文件夹，并执行回调函数
-	filepath.Walk(filePath, walkFunc)
+	for _, path := range matches {
+		fileInfo, err := os.Stat(path)
+		if err != nil {
+			continue
+		}
+		if r.maxAge > 0 && fileInfo.ModTime().After(cutoffTime) {
+			continue
+		}
+
+		if fileInfo.Name() == filepath.Base(r.logPath) {
+			continue
+		}
+
+		os.Remove(path)
+	}
 }
 
 func (r *RotateLog) getLatestLogPath(t time.Time) string {
