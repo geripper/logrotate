@@ -108,32 +108,56 @@ func (r *RotateLog) rotateFile(now time.Time) error {
 // Judege expired by laste modify time
 func (r *RotateLog) deleteExpiredFile(now time.Time) {
 	cutoffTime := now.Add(-r.maxAge)
-	matches, err := filepath.Glob(r.deleteFileWildcard)
-	if err != nil {
-		return
+
+	filePath := filepath.Dir(r.logPath)
+	walkFunc := func(path string, info os.FileInfo, err error) error {
+		// 如果遍历到的是文件，则输出文件名
+		if !info.IsDir() {
+			if r.maxAge > 0 && info.ModTime().After(cutoffTime) {
+				return nil
+			}
+
+			if info.Name() == filepath.Base(r.logPath) {
+				return nil
+			}
+			filename := fmt.Sprintf("%s/%s", path, info.Name())
+			os.Remove(filename)
+		}
+		return nil
 	}
 
-	toUnlink := make([]string, 0, len(matches))
-	for _, path := range matches {
-		fileInfo, err := os.Stat(path)
-		if err != nil {
-			continue
-		}
-
-		if r.maxAge > 0 && fileInfo.ModTime().After(cutoffTime) {
-			continue
-		}
-
-		if fileInfo.Name() == filepath.Base(r.logPath) {
-			continue
-		}
-		toUnlink = append(toUnlink, path)
-	}
-
-	for _, path := range toUnlink {
-		os.Remove(path)
-	}
+	// 遍历文件夹及其子文件夹，并执行回调函数
+	filepath.Walk(filePath, walkFunc)
 }
+
+// func (r *RotateLog) deleteExpiredFile(now time.Time) {
+// 	day := strconv.Itoa(int(r.maxAge / (24 * 2 * time.Hour)))
+// 	filePath := filepath.Dir(r.logPath)
+
+// 	d := time.Now()
+// 	date := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, time.Local)
+// 	diff := (date.Unix() + 86400) - d.Unix()
+// 	t := time.NewTimer(time.Duration(diff) * time.Second)
+
+// 	goos := runtime.GOOS
+
+// 	for {
+// 		<-t.C
+
+// 		if goos == "windows" {
+// 			execArr := []string{"/c", "forfiles", "-p", filePath, "-s", "-m", "*", "-d", "-" + day,
+// 				"-c", "cmd /c del /q /f @path"}
+
+// 			exec.Command("cmd", execArr...).CombinedOutput()
+// 		} else {
+// 			execName := "find " + filePath + `/ -mtime +` + day + ` -name "*" -exec rm -rf {} \;`
+
+// 			exec.Command(execName).CombinedOutput()
+// 		}
+
+// 		t.Reset(24 * time.Hour)
+// 	}
+// }
 
 func (r *RotateLog) getLatestLogPath(t time.Time) string {
 	filesuffix := path.Ext(r.filename)
