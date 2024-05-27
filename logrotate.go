@@ -107,6 +107,10 @@ func (r *RotateLog) rotateFile(now time.Time) error {
 
 // Judege expired by laste modify time
 func (r *RotateLog) deleteExpiredFile(now time.Time) {
+	if r.maxAge <= 0 {
+		return
+	}
+
 	cutoffTime := now.Add(-r.maxAge)
 
 	filePath := filepath.Dir(r.logPath)
@@ -120,8 +124,8 @@ func (r *RotateLog) deleteExpiredFile(now time.Time) {
 			if info.Name() == filepath.Base(r.logPath) {
 				return nil
 			}
-			filename := fmt.Sprintf("%s/%s", path, info.Name())
-			os.Remove(filename)
+
+			os.Remove(path)
 		}
 		return nil
 	}
@@ -129,35 +133,6 @@ func (r *RotateLog) deleteExpiredFile(now time.Time) {
 	// 遍历文件夹及其子文件夹，并执行回调函数
 	filepath.Walk(filePath, walkFunc)
 }
-
-// func (r *RotateLog) deleteExpiredFile(now time.Time) {
-// 	day := strconv.Itoa(int(r.maxAge / (24 * 2 * time.Hour)))
-// 	filePath := filepath.Dir(r.logPath)
-
-// 	d := time.Now()
-// 	date := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, time.Local)
-// 	diff := (date.Unix() + 86400) - d.Unix()
-// 	t := time.NewTimer(time.Duration(diff) * time.Second)
-
-// 	goos := runtime.GOOS
-
-// 	for {
-// 		<-t.C
-
-// 		if goos == "windows" {
-// 			execArr := []string{"/c", "forfiles", "-p", filePath, "-s", "-m", "*", "-d", "-" + day,
-// 				"-c", "cmd /c del /q /f @path"}
-
-// 			exec.Command("cmd", execArr...).CombinedOutput()
-// 		} else {
-// 			execName := "find " + filePath + `/ -mtime +` + day + ` -name "*" -exec rm -rf {} \;`
-
-// 			exec.Command(execName).CombinedOutput()
-// 		}
-
-// 		t.Reset(24 * time.Hour)
-// 	}
-// }
 
 func (r *RotateLog) getLatestLogPath(t time.Time) string {
 	filesuffix := path.Ext(r.filename)
